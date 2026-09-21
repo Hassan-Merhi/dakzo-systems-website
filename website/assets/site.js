@@ -10,9 +10,28 @@ const translations={
 };
 const storageKey="dakzo-language";
 function language(){return localStorage.getItem(storageKey)==="en"?"en":"fr"}
+
+function getStoredAttribution(){
+  try{return JSON.parse(sessionStorage.getItem("dakzo-attribution")||"{}")}catch{return {}}
+}
+function analyticsContext(){
+  const attr=getStoredAttribution();
+  return {
+    utm_source:attr.utm_source||undefined,
+    utm_medium:attr.utm_medium||undefined,
+    utm_campaign:attr.utm_campaign||undefined,
+    utm_content:attr.utm_content||undefined,
+    utm_term:attr.utm_term||undefined
+  };
+}
 function trackEvent(name,payload={}){
   window.dataLayer=window.dataLayer||[];
-  window.dataLayer.push({event:name,...payload});
+  const context=analyticsContext();
+  window.dataLayer.push({
+    event:name,
+    ...Object.fromEntries(Object.entries(context).filter(([,value])=>value!==undefined)),
+    ...payload
+  });
 }
 function applyLanguage(lang,{track=false}={}){
   localStorage.setItem(storageKey,lang);
@@ -35,7 +54,15 @@ window.Dakzo={trackEvent};
 document.addEventListener("DOMContentLoaded",()=>{
   const lang=language();
   applyLanguage(lang);
-  trackEvent("page_view",{language:lang,page_path:location.pathname});
+  trackEvent("page_view",{language:lang,page_path:location.pathname,page_title:document.title});
+
+  const normalizedPath=location.pathname.replace(/\/+$/,"")||"/";
+  if(normalizedPath==="/pricing"){
+    trackEvent("view_pricing",{language:lang,page_path:location.pathname});
+  }
+  if(normalizedPath==="/services"){
+    trackEvent("view_service",{language:lang,page_path:location.pathname,service:"services_overview"});
+  }
 
   const menu=document.querySelector("[data-menu-toggle]");
   const nav=document.querySelector("[data-nav]");
@@ -64,8 +91,7 @@ document.addEventListener("DOMContentLoaded",()=>{
 function getAttribution(){
   const params=new URLSearchParams(location.search);
   const keys=["utm_source","utm_medium","utm_campaign","utm_content","utm_term"];
-  let saved={};
-  try{saved=JSON.parse(sessionStorage.getItem("dakzo-attribution")||"{}")}catch{}
+  const saved=getStoredAttribution();
   keys.forEach(k=>{if(params.get(k))saved[k]=params.get(k)});
   try{sessionStorage.setItem("dakzo-attribution",JSON.stringify(saved))}catch{}
   return saved;
@@ -89,7 +115,7 @@ function initLeadForm(form){
   form.addEventListener("input",()=>{
     if(!started){
       started=true;
-      trackEvent("form_start",{language:language(),form_type:form.querySelector('[name="formType"]')?.value||"Demo Request"});
+      trackEvent("form_start",{language:language(),form_type:form.querySelector('[name="formType"]')?.value||"Demo Request",page_path:location.pathname});
     }
   });
 
@@ -137,7 +163,12 @@ function initLeadForm(form){
       if(!response.ok)throw new Error(result.error||"Submission failed");
       status.textContent=language()==="fr"?"Merci. Votre demande a été envoyée à Dakzo.":"Thank you. Your request was sent to Dakzo.";
       status.className="form-status ok";
-      trackEvent("lead_submit",{language:language(),form_type:payload.formType.toLowerCase().replaceAll(" ","_"),service:payload.serviceInterest});
+      trackEvent("lead_submit",{
+        language:language(),
+        form_type:payload.formType.toLowerCase().replaceAll(" ","_"),
+        service:payload.serviceInterest,
+        page_path:location.pathname
+      });
       form.reset();
     }catch{
       status.textContent=language()==="fr"?"Une erreur est survenue. Réessayez ou écrivez à hello@dakzosystems.com.":"Something went wrong. Try again or email hello@dakzosystems.com.";
