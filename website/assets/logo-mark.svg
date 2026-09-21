@@ -1,0 +1,7 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+<title id="title">Dakzo Systems</title><desc id="desc">Dakzo Systems technology mark</desc>
+<rect width="64" height="64" rx="16" fill="#111827"/>
+<path d="M17 15h14c12.7 0 23 9.4 23 21s-10.3 21-23 21H17V15Z" fill="#2563EB"/>
+<path d="M26 24h5c7.4 0 13 5.1 13 12s-5.6 12-13 12h-5V24Z" fill="#111827"/>
+<circle cx="49" cy="17" r="5" fill="#22D3EE"/>
+</svg>
