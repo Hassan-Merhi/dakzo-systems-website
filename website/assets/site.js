@@ -10,41 +10,93 @@ const translations={
 };
 const storageKey="dakzo-language";
 function language(){return localStorage.getItem(storageKey)==="en"?"en":"fr"}
-function applyLanguage(lang){
-  localStorage.setItem(storageKey,lang);document.documentElement.lang=lang;
-  document.querySelectorAll("[data-i18n]").forEach(el=>{const key=el.dataset.i18n;const value=translations[lang]?.[key];if(value)el.textContent=value});
-  document.querySelectorAll("[data-fr][data-en]").forEach(el=>{el.textContent=lang==="fr"?el.dataset.fr:el.dataset.en});
-  document.querySelectorAll("[data-lang]").forEach(btn=>btn.classList.toggle("active",btn.dataset.lang===lang));
-  trackEvent("language_switch",{language:lang,page_path:location.pathname});
-}
 function trackEvent(name,payload={}){
-  window.dataLayer=window.dataLayer||[];window.dataLayer.push({event:name,...payload});
+  window.dataLayer=window.dataLayer||[];
+  window.dataLayer.push({event:name,...payload});
+}
+function applyLanguage(lang,{track=false}={}){
+  localStorage.setItem(storageKey,lang);
+  document.documentElement.lang=lang;
+  document.querySelectorAll("[data-i18n]").forEach(el=>{
+    const key=el.dataset.i18n,value=translations[lang]?.[key];
+    if(value)el.textContent=value;
+  });
+  document.querySelectorAll("[data-fr][data-en]").forEach(el=>{
+    el.textContent=lang==="fr"?el.dataset.fr:el.dataset.en;
+  });
+  document.querySelectorAll("[data-fr-placeholder][data-en-placeholder]").forEach(el=>{
+    el.setAttribute("placeholder",lang==="fr"?el.dataset.frPlaceholder:el.dataset.enPlaceholder);
+  });
+  document.querySelectorAll("[data-lang]").forEach(btn=>btn.classList.toggle("active",btn.dataset.lang===lang));
+  if(track)trackEvent("language_switch",{language:lang,page_path:location.pathname});
 }
 window.Dakzo={trackEvent};
+
 document.addEventListener("DOMContentLoaded",()=>{
-  const lang=language();applyLanguage(lang);
+  const lang=language();
+  applyLanguage(lang);
   trackEvent("page_view",{language:lang,page_path:location.pathname});
-  const menu=document.querySelector("[data-menu-toggle]"),nav=document.querySelector("[data-nav]");
-  menu?.addEventListener("click",()=>nav?.classList.toggle("open"));
-  document.querySelectorAll("[data-lang]").forEach(btn=>btn.addEventListener("click",()=>applyLanguage(btn.dataset.lang)));
-  document.querySelectorAll("[data-track]").forEach(el=>el.addEventListener("click",()=>trackEvent(el.dataset.track,{language:language(),cta_location:el.dataset.location||"",service:el.dataset.service||""})));
-  const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add("visible");observer.unobserve(entry.target)}}),{threshold:.12});
-  document.querySelectorAll(".reveal").forEach(el=>observer.observe(el));
+
+  const menu=document.querySelector("[data-menu-toggle]");
+  const nav=document.querySelector("[data-nav]");
+  menu?.addEventListener("click",()=>{
+    const open=nav?.classList.toggle("open");
+    menu.setAttribute("aria-expanded",String(Boolean(open)));
+  });
+  document.querySelectorAll("[data-lang]").forEach(btn=>btn.addEventListener("click",()=>applyLanguage(btn.dataset.lang,{track:true})));
+  document.querySelectorAll("[data-track]").forEach(el=>el.addEventListener("click",()=>trackEvent(el.dataset.track,{
+    language:language(),cta_location:el.dataset.location||"",service:el.dataset.service||""
+  })));
+
+  if("IntersectionObserver" in window){
+    const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{
+      if(entry.isIntersecting){entry.target.classList.add("visible");observer.unobserve(entry.target)}
+    }),{threshold:.12});
+    document.querySelectorAll(".reveal").forEach(el=>observer.observe(el));
+  }else{
+    document.querySelectorAll(".reveal").forEach(el=>el.classList.add("visible"));
+  }
+
   const form=document.querySelector("[data-lead-form]");
-  if(form) initLeadForm(form);
+  if(form)initLeadForm(form);
 });
+
 function getAttribution(){
-  const params=new URLSearchParams(location.search);const keys=["utm_source","utm_medium","utm_campaign","utm_content","utm_term"];
-  const saved=JSON.parse(sessionStorage.getItem("dakzo-attribution")||"{}");
+  const params=new URLSearchParams(location.search);
+  const keys=["utm_source","utm_medium","utm_campaign","utm_content","utm_term"];
+  let saved={};
+  try{saved=JSON.parse(sessionStorage.getItem("dakzo-attribution")||"{}")}catch{}
   keys.forEach(k=>{if(params.get(k))saved[k]=params.get(k)});
-  sessionStorage.setItem("dakzo-attribution",JSON.stringify(saved));return saved;
+  try{sessionStorage.setItem("dakzo-attribution",JSON.stringify(saved))}catch{}
+  return saved;
 }
 getAttribution();
+
 function initLeadForm(form){
+  const params=new URLSearchParams(location.search);
+  const service=params.get("service");
+  const allowedServices=new Set(["Website","POS","Inventory","Payroll","ERP","Custom System","Other"]);
+  if(service&&allowedServices.has(service)){
+    const field=form.querySelector('[name="serviceInterest"]');
+    if(field)field.value=service;
+  }
+  if(params.get("type")==="quote"){
+    const typeField=form.querySelector('[name="formType"]');
+    if(typeField)typeField.value="Quote Request";
+  }
+
   let started=false;
-  form.addEventListener("input",()=>{if(!started){started=true;trackEvent("form_start",{language:language(),form_type:"demo_request"})}});
+  form.addEventListener("input",()=>{
+    if(!started){
+      started=true;
+      trackEvent("form_start",{language:language(),form_type:form.querySelector('[name="formType"]')?.value||"Demo Request"});
+    }
+  });
+
   form.addEventListener("submit",async e=>{
-    e.preventDefault();const status=form.querySelector("[data-form-status]"),button=form.querySelector("button[type=submit]");
+    e.preventDefault();
+    const status=form.querySelector("[data-form-status]");
+    const button=form.querySelector('button[type="submit"]');
     const fd=new FormData(form),attr=getAttribution();
     const payload={
       fullName:String(fd.get("fullName")||"").trim(),
@@ -70,19 +122,29 @@ function initLeadForm(form){
       contactConsent:fd.get("contactConsent")==="on",
       website:String(fd.get("website")||"")
     };
-    if(!payload.fullName||!payload.companyName||(!payload.email&&!payload.phone)||!payload.serviceInterest||!payload.businessNeed||!payload.contactConsent){
-      status.textContent=language()==="fr"?"Veuillez remplir tous les champs obligatoires.":"Please complete all required fields.";status.className="form-status error";return;
+
+    if(!payload.fullName||!payload.companyName||(!payload.email&&!payload.phone)||!payload.serviceInterest||payload.businessNeed.length<20||!payload.contactConsent){
+      status.textContent=language()==="fr"?"Veuillez remplir tous les champs obligatoires et fournir un email ou téléphone.":"Please complete all required fields and provide an email or phone number.";
+      status.className="form-status error";
+      return;
     }
-    button.disabled=true;button.textContent=language()==="fr"?"Envoi...":"Sending...";
+
+    button.disabled=true;
+    button.textContent=language()==="fr"?"Envoi...":"Sending...";
     try{
       const response=await fetch("/api/leads",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
-      const result=await response.json();
+      const result=await response.json().catch(()=>({}));
       if(!response.ok)throw new Error(result.error||"Submission failed");
-      status.textContent=language()==="fr"?"Merci. Votre demande a été envoyée à Dakzo.":"Thank you. Your request was sent to Dakzo.";status.className="form-status ok";
+      status.textContent=language()==="fr"?"Merci. Votre demande a été envoyée à Dakzo.":"Thank you. Your request was sent to Dakzo.";
+      status.className="form-status ok";
       trackEvent("lead_submit",{language:language(),form_type:payload.formType.toLowerCase().replaceAll(" ","_"),service:payload.serviceInterest});
       form.reset();
-    }catch(err){
-      status.textContent=language()==="fr"?"Une erreur est survenue. Réessayez ou écrivez à hello@dakzosystems.com.":"Something went wrong. Try again or email hello@dakzosystems.com.";status.className="form-status error";
-    }finally{button.disabled=false;button.textContent=language()==="fr"?"Envoyer ma demande":"Send my request"}
+    }catch{
+      status.textContent=language()==="fr"?"Une erreur est survenue. Réessayez ou écrivez à hello@dakzosystems.com.":"Something went wrong. Try again or email hello@dakzosystems.com.";
+      status.className="form-status error";
+    }finally{
+      button.disabled=false;
+      button.textContent=language()==="fr"?"Envoyer ma demande":"Send my request";
+    }
   });
 }
