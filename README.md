@@ -1,37 +1,50 @@
-# Dakzo Systems
+# Dakzo Systems Website
 
-Official website for **Dakzo Systems**, a Dakik LLC company.
+Production website for **Dakzo Systems**.
 
-Dakzo Systems designs and builds websites, applications, custom software, business systems, logistics technology, tracking platforms, and automation.
+## Current production scope
 
-## Wave 1 scope
+- French-first website with FR / EN language switching
+- Home, Services, Pricing, About, Demo/Quote, Privacy, and Terms
+- Dakzo brand palette: navy, blue, cyan
+- Mobile-responsive design
+- Secure server-side lead submission to Airtable CRM
+- UTM, referrer, source-page, language, and form attribution
+- Lead conversion event hooks through `window.dataLayer`
+- Render-ready Node web service
 
-This repository currently includes Phases 1–4 of the Dakzo Systems website program:
+## Lead flow
 
-1. Brand foundation
-2. Visual identity
-3. Website architecture
-4. Homepage
+Browser form → `POST /api/leads` → secure Render server → Airtable **Website Lead Intake** webhook → **Leads** table → Airtable notification automation.
 
-## Local verification
+The Airtable webhook URL must only exist in the server environment variable:
 
-No third-party runtime dependencies are required.
+`AIRTABLE_LEAD_WEBHOOK_URL`
+
+Never expose it in browser JavaScript.
+
+## Local run
 
 ```bash
-npm run verify
+npm run build
+AIRTABLE_LEAD_WEBHOOK_URL="your-secret-webhook" npm start
 ```
 
-The build output is written to `dist/`.
+Open `http://localhost:10000`.
 
-## Architecture
+## Render
 
-- `site/` — production website source
-- `site/assets/` — shared styles, scripts, and brand assets
-- `scripts/` — dependency-free validation and build scripts
-- `dist/` — generated production output (ignored by git)
+- Runtime: Node
+- Build command: `npm run build`
+- Start command: `npm start`
+- Required secret: `AIRTABLE_LEAD_WEBHOOK_URL`
+- Recommended region: Frankfurt
 
-## Brand position
+## Commercial rules reflected on the site
 
-**Dakzo Systems — A Dakik LLC Company**
-
-Custom Software · ERP · Web Applications · Mobile Applications · Logistics Technology · Business Automation
+- Websites: $800–$1,500 setup + $50–$100/month
+- Business systems: $2,500–$6,000 setup + $250–$600/month
+- ERP/custom: $7,500+ setup + $750+/month
+- 50% deposit / 50% before final deployment
+- 2 revision rounds
+- Out-of-scope work quoted separately
