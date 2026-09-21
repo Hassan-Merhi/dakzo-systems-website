@@ -6,7 +6,8 @@ const project=fileURLToPath(new URL("../",import.meta.url));
 const source=join(project,"website");
 const output=join(project,"dist");
 const siteUrl=(process.env.SITE_URL||"https://dakzosystems.com").replace(/\/$/,"");
-const gtmId=(process.env.GTM_ID||"").trim();\nconst ga4MeasurementId=(process.env.GA4_MEASUREMENT_ID||"").trim();
+const gtmId=(process.env.GTM_ID||"").trim();
+const ga4MeasurementId=(process.env.GA4_MEASUREMENT_ID||"").trim();
 const googleSiteVerification=(process.env.GOOGLE_SITE_VERIFICATION||"").trim();
 const routes=["/","/services/","/pricing/","/about/","/demo/","/privacy/","/terms/"];
 
