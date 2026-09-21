@@ -6,7 +6,7 @@ const project=fileURLToPath(new URL("../",import.meta.url));
 const source=join(project,"website");
 const output=join(project,"dist");
 const siteUrl=(process.env.SITE_URL||"https://dakzosystems.com").replace(/\/$/,"");
-const gtmId=(process.env.GTM_ID||"").trim();
+const gtmId=(process.env.GTM_ID||"").trim();\nconst ga4MeasurementId=(process.env.GA4_MEASUREMENT_ID||"").trim();
 const googleSiteVerification=(process.env.GOOGLE_SITE_VERIFICATION||"").trim();
 const routes=["/","/services/","/pricing/","/about/","/demo/","/privacy/","/terms/"];
 
@@ -29,13 +29,23 @@ function trackingMarkup(){
     bodyStart=`<!-- Google Tag Manager (noscript) --><noscript><iframe src="https://www.googletagmanager.com/ns.html?id=${gtmId}" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript><!-- End Google Tag Manager (noscript) -->`;
   }
 
-  return {head:headParts.join(""),bodyStart,validGtm};
+  const validGa4=/^G-[A-Z0-9]+$/i.test(ga4MeasurementId);
+  if(validGa4){
+    headParts.push(`<!-- GA4 reliability fallback --><script src="/assets/ga4-fallback.js" defer></script><!-- End GA4 reliability fallback -->`);
+  }
+
+  return {head:headParts.join(""),bodyStart,validGtm,validGa4};
 }
 
 const tracking=trackingMarkup();
 if(tracking.validGtm){
   const loader=`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${gtmId}');\n`;
   await writeFile(join(output,"assets","gtm-loader.js"),loader);
+}
+
+if(tracking.validGa4){
+  const fallback=`(function(){var GTM_ID=${JSON.stringify(gtmId)},GA_ID=${JSON.stringify(ga4MeasurementId)};setTimeout(function(){var gtmReady=GTM_ID&&window.google_tag_manager&&window.google_tag_manager[GTM_ID];if(gtmReady)return;window.dataLayer=window.dataLayer||[];window.gtag=window.gtag||function(){window.dataLayer.push(arguments)};window.__dakzoGa4Direct=true;window.gtag('js',new Date());window.gtag('config',GA_ID);var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id='+encodeURIComponent(GA_ID);document.head.appendChild(s);},3000);})();\n`;
+  await writeFile(join(output,"assets","ga4-fallback.js"),fallback);
 }
 
 for(const route of routes){
@@ -55,7 +65,7 @@ await writeFile(join(output,"robots.txt"),`User-agent: *\nAllow: /\n\nSitemap: $
 await writeFile(join(output,"health.json"),JSON.stringify({
   status:"ok",
   site:"Dakzo Systems",
-  tracking:{gtm:tracking.validGtm,searchConsole:Boolean(googleSiteVerification)}
+  tracking:{gtm:tracking.validGtm,ga4Fallback:tracking.validGa4,searchConsole:Boolean(googleSiteVerification)}
 }));
 await writeFile(join(output,"404.html"),`<!doctype html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>404 | Dakzo Systems</title><link rel="stylesheet" href="/assets/styles.css"><body><main class="page-hero"><div class="container"><div class="eyebrow">404</div><h1>Page introuvable.</h1><p><a class="button" href="/">Retour à l’accueil</a></p></div></main></body></html>`);
-console.log(`Dakzo build complete: ${routes.length} routes | GTM: ${tracking.validGtm?"enabled":"not configured"} | Search Console: ${googleSiteVerification?"verification token present":"not configured"}`);
+console.log(`Dakzo build complete: ${routes.length} routes | GTM: ${tracking.validGtm?"enabled":"not configured"} | GA4 fallback: ${tracking.validGa4?"enabled":"not configured"} | Search Console: ${googleSiteVerification?"verification token present":"not configured"}`);
