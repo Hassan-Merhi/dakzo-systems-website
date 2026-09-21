@@ -27,11 +27,14 @@ function analyticsContext(){
 function trackEvent(name,payload={}){
   window.dataLayer=window.dataLayer||[];
   const context=analyticsContext();
-  window.dataLayer.push({
-    event:name,
+  const eventData={
     ...Object.fromEntries(Object.entries(context).filter(([,value])=>value!==undefined)),
     ...payload
-  });
+  };
+  window.dataLayer.push({event:name,...eventData});
+  if(window.__dakzoGa4Direct&&typeof window.gtag==="function"){
+    window.gtag("event",name,eventData);
+  }
 }
 function applyLanguage(lang,{track=false}={}){
   localStorage.setItem(storageKey,lang);
