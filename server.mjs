@@ -20,7 +20,7 @@ function headers(extra={}){
     "X-Frame-Options":"DENY",
     "Referrer-Policy":"strict-origin-when-cross-origin",
     "Permissions-Policy":"camera=(), microphone=(), geolocation=()",
-    "Content-Security-Policy":"default-src 'self'; script-src 'self' https://www.googletagmanager.com; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://www.google-analytics.com https://www.googletagmanager.com; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com; frame-src https://www.googletagmanager.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+    "Content-Security-Policy":"default-src 'self'; script-src 'self' https://www.googletagmanager.com https://tagmanager.google.com; script-src-elem 'self' https://www.googletagmanager.com https://tagmanager.google.com; style-src 'self' https://www.googletagmanager.com https://tagmanager.google.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://www.google-analytics.com https://www.googletagmanager.com https://ssl.gstatic.com https://www.gstatic.com; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com https://tagmanager.google.com; frame-src https://www.googletagmanager.com https://tagmanager.google.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
     ...extra
   };
 }
